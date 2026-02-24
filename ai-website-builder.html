@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Website Builder</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --bg:#0e1117;--panel:#161b22;--border:#30363d;--accent:#7c3aed;
+    --accent2:#2563eb;--text:#e6edf3;--muted:#8b949e;--green:#3fb950;
+    --red:#f85149;--yellow:#d29922;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;}
+  .logo{display:flex;align-items:center;gap:10px;font-size:1.1rem;font-weight:700;}
+  .logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+  .badge{font-size:10px;background:var(--green);color:#000;padding:2px 6px;border-radius:20px;font-weight:700;}
+  .api-btn{border:none;color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s;}
+  .api-btn.no-key{background:var(--red);}
+  .api-btn.has-key{background:#1a3a1a;border:1px solid var(--green);color:var(--green);}
+
+  main{display:flex;flex:1;overflow:hidden;}
+
+  aside{width:260px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+  .sidebar-header{padding:14px 16px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);}
+  .history{flex:1;overflow-y:auto;padding:8px;}
+  .history::-webkit-scrollbar{width:4px;}
+  .history::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  .hist-item{padding:10px 12px;border-radius:6px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:.15s;}
+  .hist-item:hover{background:#1f2937;border-color:var(--border);}
+  .hist-item.active{background:#1e1b4b;border-color:var(--accent);}
+  .hist-title{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hist-time{font-size:11px;color:var(--muted);margin-top:2px;}
+  .empty-hist{color:var(--muted);font-size:13px;text-align:center;padding:20px 10px;line-height:1.6;}
+
+  .content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+  .api-banner{background:#1a0a0a;border-bottom:1px solid var(--red);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .api-banner span{color:var(--red);font-size:13px;}
+  .api-banner button{background:var(--red);border:none;color:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600;}
+  .hidden{display:none!important;}
+
+  .prompt-area{padding:16px;border-bottom:1px solid var(--border);background:var(--panel);}
+  .prompt-row{display:flex;gap:10px;}
+  textarea{flex:1;background:#0d1117;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:12px;font-size:14px;resize:none;height:80px;font-family:inherit;transition:.2s;line-height:1.5;}
+  textarea:focus{outline:none;border-color:var(--accent);}
+  .btn-generate{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;padding:0 20px;height:80px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;transition:.2s;min-width:110px;}
+  .btn-generate:hover{opacity:.9;}
+  .btn-generate:disabled{opacity:.4;cursor:not-allowed;}
+  .refine-row{display:flex;gap:8px;margin-top:10px;}
+  .refine-input{flex:1;background:#0d1117;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px 12px;font-size:13px;font-family:inherit;}
+  .refine-input:focus{outline:none;border-color:var(--accent2);}
+  .btn-refine{background:var(--accent2);border:none;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;}
+  .btn-refine:disabled{opacity:.4;cursor:not-allowed;}
+  .error-box{background:#1a0a0a;border:1px solid var(--red);border-radius:8px;padding:12px 16px;margin-top:10px;color:var(--red);font-size:13px;display:none;line-height:1.5;}
+  .error-box.show{display:block;}
+
+  .workspace{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .tab-bar{display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--panel);border-bottom:1px solid var(--border);height:42px;flex-shrink:0;}
+  .tabs{display:flex;gap:4px;}
+  .tab{background:none;border:none;color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;}
+  .tab.active{background:var(--bg);color:var(--text);}
+  .tab-actions{display:flex;gap:8px;}
+  .btn-sm{background:var(--border);border:none;color:var(--text);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;}
+  .btn-sm:hover{background:#3d444d;}
+  .btn-sm.success{background:var(--green);color:#000;}
+
+  .view{flex:1;overflow:hidden;display:none;}
+  .view.active{display:flex;flex-direction:column;}
+  #previewView{background:#fff;}
+  iframe{flex:1;border:none;width:100%;height:100%;}
+  #codeView{background:#0d1117;overflow:auto;padding:20px;}
+  pre{font-family:'Fira Code',monospace;font-size:13px;line-height:1.6;color:#e6edf3;white-space:pre-wrap;word-break:break-word;}
+
+  .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:12px;padding:20px;text-align:center;}
+  .empty-icon{font-size:48px;opacity:.4;}
+  .empty-title{font-size:18px;font-weight:600;color:var(--text);opacity:.6;}
+  .empty-sub{font-size:14px;max-width:320px;line-height:1.6;}
+  .suggestions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;}
+  .suggestion{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:20px;cursor:pointer;font-size:12px;transition:.15s;}
+  .suggestion:hover{border-color:var(--accent);color:var(--accent);}
+
+  .loading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+  .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-text{color:var(--muted);font-size:14px;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:28px;width:500px;max-width:90vw;}
+  .modal h2{margin-bottom:8px;}
+  .modal p{color:var(--muted);font-size:13px;margin-bottom:10px;line-height:1.6;}
+  .modal a{color:var(--accent2);}
+  .steps{background:#0d1117;border-radius:8px;padding:14px;margin-bottom:14px;font-size:13px;line-height:2.2;color:var(--text);}
+  .modal input{width:100%;background:#0d1117;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:10px 14px;font-size:14px;margin-bottom:6px;font-family:monospace;}
+  .modal input:focus{outline:none;border-color:var(--accent);}
+  .modal-note{font-size:12px;color:var(--muted);margin-bottom:14px;}
+  .modal-btns{display:flex;gap:10px;justify-content:flex-end;}
+  .btn-cancel{background:var(--border);border:none;color:var(--text);padding:8px 18px;border-radius:6px;cursor:pointer;}
+  .btn-save{background:var(--accent);border:none;color:#fff;padding:8px 18px;border-radius:6px;cursor:pointer;font-weight:600;}
+
+  .statusbar{height:24px;background:#010409;border-top:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:16px;flex-shrink:0;}
+  .status-item{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);}
+  .status-dot.green{background:var(--green);}
+  .status-dot.yellow{background:var(--yellow);}
+  .status-dot.red{background:var(--red);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <span>AI Website Builder</span>
+    <span class="badge">FREE</span>
+  </div>
+  <button class="api-btn no-key" id="apiBtn" onclick="openModal()">🔑 Set API Key</button>
+</header>
+
+<main>
+  <aside>
+    <div class="sidebar-header">History</div>
+    <div class="history" id="history">
+      <div class="empty-hist">No sites generated yet.<br/>Your history will appear here.</div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="api-banner" id="apiBanner">
+      <span>⚠️ Set your free Gemini API key to start generating websites.</span>
+      <button onclick="openModal()">Set Key Now</button>
+    </div>
+
+    <div class="prompt-area">
+      <div class="prompt-row">
+        <textarea id="promptInput" placeholder="Describe the website you want... e.g. 'A dark themed SaaS landing page with hero, features, and pricing'" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey))generate()"></textarea>
+        <button class="btn-generate" id="genBtn" onclick="generate()">⚡ Generate</button>
+      </div>
+      <div class="refine-row">
+        <input class="refine-input" id="refineInput" placeholder="Refine current site... e.g. 'make the button red, add a footer'" onkeydown="if(event.key==='Enter')refine()" disabled/>
+        <button class="btn-refine" id="refineBtn" onclick="refine()" disabled>↩ Refine</button>
+      </div>
+      <div class="error-box" id="errorBox"></div>
+    </div>
+
+    <div class="workspace">
+      <div id="emptyState" class="view active">
+        <div class="empty-state">
+          <div class="empty-icon">🌐</div>
+          <div class="empty-title">Build any website with AI</div>
+          <div class="empty-sub">Set your free Gemini API key, then describe any website and AI will build it instantly.</div>
+          <div class="suggestions">
+            <span class="suggestion" onclick="fill('A modern SaaS landing page with dark theme, hero, features, and pricing')">SaaS Landing Page</span>
+            <span class="suggestion" onclick="fill('A portfolio for a graphic designer with project gallery and contact form')">Portfolio</span>
+            <span class="suggestion" onclick="fill('A restaurant website with menu, about section, and reservation form')">Restaurant</span>
+            <span class="suggestion" onclick="fill('A personal blog with recent posts, sidebar, and newsletter signup')">Blog</span>
+            <span class="suggestion" onclick="fill('An e-commerce product page for wireless headphones with reviews')">Product Page</span>
+            <span class="suggestion" onclick="fill('A mobile app landing page with features, screenshots, and download buttons')">App Landing</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="loadingState" class="view" style="display:none;">
+        <div class="loading">
+          <div class="spinner"></div>
+          <div class="loading-text" id="loadingText">Generating your website...</div>
+        </div>
+      </div>
+
+      <div id="workspaceView" class="view" style="display:none;flex-direction:column;">
+        <div class="tab-bar">
+          <div class="tabs">
+            <button class="tab active" id="tabPreview" onclick="switchTab('preview')">👁 Preview</button>
+            <button class="tab" id="tabCode" onclick="switchTab('code')">💻 Code</button>
+          </div>
+          <div class="tab-actions">
+            <button class="btn-sm" onclick="copyCode()" id="copyBtn">📋 Copy</button>
+            <button class="btn-sm" onclick="downloadCode()">⬇ Download</button>
+            <button class="btn-sm" onclick="openInNew()">↗ Open</button>
+          </div>
+        </div>
+        <div id="previewView" class="view active">
+          <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+        </div>
+        <div id="codeView" class="view">
+          <pre id="codeContent"></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <div class="status-item"><div class="status-dot" id="statusDot"></div><span id="statusText">Ready — set your API key to begin</span></div>
+      <div class="status-item" id="charInfo" style="display:none;"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>🔑 Gemini API Key</h2>
+    <p>Get your free key from Google AI Studio — no credit card required:</p>
+    <div class="steps">
+      1️⃣ Visit <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a><br/>
+      2️⃣ Sign in with your Google account<br/>
+      3️⃣ Click <strong>"Create API Key"</strong><br/>
+      4️⃣ Copy and paste it below
+    </div>
+    <input type="password" id="apiKeyInput" placeholder="AIza...paste your key here"/>
+    <div class="modal-note">🔒 Stored in memory only — never saved to a server or database.</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveKey()">Save & Start Building</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────────────────────
+  // When self-hosting, you can hardcode your key here so users don't need one:
+  // const HARDCODED_KEY = 'AIza...your-key...';
+  // Otherwise leave it as empty string and users enter their own.
+  const HARDCODED_KEY = '';
+
+  const GEMINI_MODEL = 'gemini-2.0-flash';
+  // ────────────────────────────────────────────────────────────────────────────
+
+  let apiKey = HARDCODED_KEY;
+  let currentCode = '';
+  let histData = [];
+  let curIdx = -1;
+
+  window.onload = () => {
+    if(apiKey){ setKeyUI(); } else { openModal(); }
+  };
+
+  // MODAL
+  function openModal(){ document.getElementById('modalOverlay').classList.add('show'); setTimeout(()=>document.getElementById('apiKeyInput').focus(),150); }
+  function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+  function saveKey(){
+    const k = document.getElementById('apiKeyInput').value.trim();
+    if(!k){ showError('Please paste your Gemini API key.'); return; }
+    apiKey = k; closeModal(); setKeyUI();
+  }
+  function setKeyUI(){
+    document.getElementById('apiBanner').classList.add('hidden');
+    const b = document.getElementById('apiBtn');
+    b.textContent = '✅ API Key Set'; b.className = 'api-btn has-key';
+    setStatus('Ready — describe a website to get started', 'green');
+  }
+  document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal(); });
+  document.getElementById('apiKeyInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveKey(); });
+
+  function fill(t){ document.getElementById('promptInput').value=t; document.getElementById('promptInput').focus(); }
+
+  // ERRORS / STATUS
+  function showError(msg){ const el=document.getElementById('errorBox'); el.textContent='❌ '+msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),7000); }
+  function hideError(){ document.getElementById('errorBox').classList.remove('show'); }
+  function setStatus(txt,color=''){ document.getElementById('statusText').textContent=txt; document.getElementById('statusDot').className='status-dot'+(color?' '+color:''); }
+  function showState(s){ ['emptyState','loadingState','workspaceView'].forEach(id=>{ const el=document.getElementById(id); el.style.display=id===s?'flex':'none'; el.classList.toggle('active',id===s); }); }
+
+  // GENERATE
+  async function generate(){
+    const prompt = document.getElementById('promptInput').value.trim();
+    if(!prompt){ showError('Please describe the website you want to build.'); return; }
+    if(!apiKey){ showError('Set your Gemini API key first.'); openModal(); return; }
+    hideError();
+    document.getElementById('genBtn').disabled=true;
+    showState('loadingState');
+    document.getElementById('loadingText').textContent='Generating your website...';
+    setStatus('Generating...','yellow');
+    try {
+      const raw = await callGemini(buildPrompt(prompt));
+      currentCode = extractHTML(raw);
+      if(!currentCode) throw new Error('AI returned empty output. Try rephrasing your prompt.');
+      addHist(prompt, currentCode);
+      renderResult(currentCode);
+      document.getElementById('refineInput').disabled=false;
+      document.getElementById('refineBtn').disabled=false;
+      setStatus('Generated successfully ✓','green');
+      document.getElementById('charInfo').style.display='flex';
+      document.getElementById('charInfo').textContent=currentCode.length.toLocaleString()+' chars';
+    } catch(e){
+      showState(currentCode?'workspaceView':'emptyState');
+      if(currentCode) renderResult(currentCode);
+      showError(e.message);
+      setStatus('Error','red');
+    }
+    document.getElementById('genBtn').disabled=false;
+  }
+
+  // REFINE
+  async function refine(){
+    const instr = document.getElementById('refineInput').value.trim();
+    if(!instr){ showError('Describe what you want to change.'); return; }
+    hideError();
+    document.getElementById('refineBtn').disabled=true;
+    document.getElementById('genBtn').disabled=true;
+    showState('loadingState');
+    document.getElementById('loadingText').textContent='Refining your website...';
+    setStatus('Refining...','yellow');
+    const msg = `Here is the current HTML:\n\n${currentCode}\n\nChange requested: "${instr}"\n\nReturn the complete updated HTML only. No markdown, no explanation. Start with <!DOCTYPE html>.`;
+    try {
+      const raw = await callGemini(msg);
+      currentCode = extractHTML(raw);
+      if(curIdx>=0) histData[curIdx].code=currentCode;
+      renderResult(currentCode);
+      document.getElementById('refineInput').value='';
+      setStatus('Refined ✓','green');
+      document.getElementById('charInfo').textContent=currentCode.length.toLocaleString()+' chars';
+    } catch(e){
+      showState('workspaceView'); renderResult(currentCode);
+      showError(e.message); setStatus('Refine failed','red');
+    }
+    document.getElementById('refineBtn').disabled=false;
+    document.getElementById('genBtn').disabled=false;
+  }
+
+  // GEMINI API CALL
+  async function callGemini(userMsg){
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+    const body = {
+      contents:[{role:'user', parts:[{text:userMsg}]}],
+      generationConfig:{temperature:0.7, maxOutputTokens:8192}
+    };
+    let res;
+    try { res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); }
+    catch(e){ throw new Error('Network error — make sure this page is served from a web server, not opened as a local file.'); }
+    if(!res.ok){
+      let msg = 'API error (status '+res.status+')';
+      try {
+        const err = await res.json();
+        if(err?.error?.message) msg = err.error.message;
+        if(res.status===400) msg = 'Invalid API key. Double-check it at aistudio.google.com';
+        if(res.status===403) msg = 'API key lacks permission. Make sure it\'s a Gemini API key.';
+        if(res.status===429) msg = 'Rate limit reached. Wait a moment and try again.';
+      } catch(e){}
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(!text) throw new Error('AI returned empty response. Try again.');
+    return text;
+  }
+
+  function buildPrompt(desc){
+    return `You are an expert web developer. Generate a complete, beautiful, modern single-file HTML website.
+
+Description: ${desc}
+
+Rules:
+- Return ONLY raw HTML. Start your response with <!DOCTYPE html>
+- No markdown backticks, no explanation, no preamble
+- All CSS inside <style> tags, all JS inside <script> tags
+- Use modern CSS (flexbox, grid, animations, CSS variables)
+- Fully responsive, visually impressive, production-quality
+- Include realistic placeholder content
+- You may use Google Fonts via @import in CSS`;
+  }
+
+  function extractHTML(raw){
+    let code = raw.trim().replace(/^```html\s*/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+    const m = code.match(/<!DOCTYPE html[\s\S]*/i)||code.match(/<html[\s\S]*/i);
+    return m ? m[0].trim() : code;
+  }
+
+  // RENDER
+  function renderResult(code){
+    showState('workspaceView');
+    document.getElementById('previewFrame').srcdoc = code;
+    document.getElementById('codeContent').textContent = code;
+    switchTab('preview');
+  }
+
+  function switchTab(tab){
+    const p=tab==='preview';
+    document.getElementById('tabPreview').classList.toggle('active',p);
+    document.getElementById('tabCode').classList.toggle('active',!p);
+    document.getElementById('previewView').style.display=p?'flex':'none';
+    document.getElementById('previewView').classList.toggle('active',p);
+    document.getElementById('codeView').style.display=!p?'flex':'none';
+    document.getElementById('codeView').classList.toggle('active',!p);
+  }
+
+  async function copyCode(){ if(!currentCode)return; await navigator.clipboard.writeText(currentCode); const b=document.getElementById('copyBtn'); b.textContent='✓ Copied!'; b.classList.add('success'); setTimeout(()=>{b.textContent='📋 Copy';b.classList.remove('success');},2000); }
+  function downloadCode(){ if(!currentCode)return; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([currentCode],{type:'text/html'})); a.download='website.html'; a.click(); }
+  function openInNew(){ if(!currentCode)return; const w=window.open(); w.document.write(currentCode); w.document.close(); }
+
+  // HISTORY
+  function addHist(prompt,code){ histData.unshift({prompt,code,time:new Date().toLocaleTimeString()}); curIdx=0; renderHist(); }
+  function loadHist(i){ curIdx=i; currentCode=histData[i].code; renderResult(currentCode); renderHist(); document.getElementById('promptInput').value=histData[i].prompt; document.getElementById('refineInput').disabled=false; document.getElementById('refineBtn').disabled=false; }
+  function renderHist(){
+    const el=document.getElementById('history');
+    if(!histData.length){el.innerHTML='<div class="empty-hist">No sites yet.</div>';return;}
+    el.innerHTML=histData.map((h,i)=>`<div class="hist-item ${i===curIdx?'active':''}" onclick="loadHist(${i})"><div class="hist-title">${esc(h.prompt)}</div><div class="hist-time">${h.time}</div></div>`).join('');
+  }
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
